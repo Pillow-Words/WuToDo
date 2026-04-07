@@ -1,0 +1,21 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for WuToDo",
+  "windows": ["*"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-size",
+    "core:window:allow-set-position",
+    "core:window:allow-set-always-on-top",
+    "core:window:allow-current-monitor",
+    "core:window:allow-available-monitors",
+    "core:window:allow-inner-size",
+    "core:window:allow-outer-position",
+    "store:default",
+    "core:event:default",
+    "shell:allow-open"
+  ]
+}
