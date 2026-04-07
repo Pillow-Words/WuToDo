@@ -24,6 +24,7 @@ pub struct JiraIssue {
     pub summary: String,
     pub status: String,
     pub status_category: String,
+    pub project_key: String,
     pub url: String,
     pub updated_at: String,
 }
@@ -110,6 +111,9 @@ async fn fetch_jira_issues(config: JiraConfig) -> Result<Vec<JiraIssue>, String>
             _ => "todo",
         };
 
+        // 从 key 中提取项目 key (如 "PROJ-123" -> "PROJ")
+        let project_key = key.split('-').next().unwrap_or("").to_string();
+
         let issue_url = format!("{}/browse/{}", config.base_url.trim_end_matches('/'), key);
 
         result.push(JiraIssue {
@@ -117,6 +121,7 @@ async fn fetch_jira_issues(config: JiraConfig) -> Result<Vec<JiraIssue>, String>
             summary: summary.to_string(),
             status: status_name.to_string(),
             status_category: category.to_string(),
+            project_key,
             url: issue_url,
             updated_at: updated.to_string(),
         });
@@ -262,7 +267,7 @@ pub fn run() {
                 let scale = monitor.scale_factor();
                 let screen_w = screen_size.width as f64 / scale;
 
-                let trigger_height = 10.0;
+                let trigger_height = 6.0;
                 let trigger_width = 200.0;
                 let panel_width = 360.0;
                 let panel_height = 500.0;

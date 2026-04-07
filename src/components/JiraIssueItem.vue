@@ -6,7 +6,6 @@ import { open } from "@tauri-apps/plugin-shell";
 const props = defineProps<{ issue: JiraIssue }>();
 
 const meta = STATUS_CATEGORY_CONFIG[props.issue.status_category] || {
-  label: props.issue.status,
   color: "#9CA3AF",
 };
 
@@ -22,9 +21,10 @@ async function openIssue() {
       :style="{
         '--s-color': meta.color,
       }"
+      :title="issue.status"
     >
       <span class="pill-dot"></span>
-      <span class="pill-label">{{ meta.label }}</span>
+      <span class="pill-label">{{ issue.status }}</span>
     </div>
 
     <div class="content">

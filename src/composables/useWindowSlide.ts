@@ -43,11 +43,9 @@ export function useWindowSlide() {
     collapseTimer = setTimeout(async () => {
       expanded.value = false;
       const appWindow = getCurrentWindow();
-      // Small delay for CSS animation to finish
-      setTimeout(() => {
-        appWindow.hide();
-      }, 250);
-    }, 400);
+      // 同时隐藏窗口，不再延迟
+      appWindow.hide();
+    }, 300);
   }
 
   function onPanelEnter() {

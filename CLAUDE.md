@@ -52,3 +52,7 @@ Two HTML entry points: `index.html` (panel/Vue app) and `trigger.html` (plain TS
 - **Window positioning**: Always use `LogicalPosition`/`LogicalSize` for DPI scaling support
 - **Monitor detection**: Use `app.primary_monitor()` with fallback to `available_monitors().next()`; avoid `window.current_monitor()` which can return None before window is shown
 - **Trigger window**: Must NOT have `transparent: true` in tauri.conf.json (causes invisibility on Windows); panel DOES use transparent
+
+
+## 回答问题的关键要素
+先充分理解提问的内容，如果有不确信的地方先反问核实，确保充分理解需求后再开始写代码。

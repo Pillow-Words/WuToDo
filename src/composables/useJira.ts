@@ -51,7 +51,8 @@ export function useJira() {
         baseUrl: string;
         username: string;
         password: string;
-        projectKey: string;
+        projectKeys: string[];
+        projectKey?: string; // 兼容旧版本
       }>('config');
 
       if (saved) {
@@ -59,7 +60,7 @@ export function useJira() {
           baseUrl: saved.baseUrl,
           username: saved.username,
           password: decodePassword(saved.password),
-          projectKey: saved.projectKey,
+          projectKeys: saved.projectKeys || (saved.projectKey ? [saved.projectKey] : []),
         };
       }
     } catch (e) {
@@ -76,7 +77,7 @@ export function useJira() {
       baseUrl: cfg.baseUrl,
       username: cfg.username,
       password: encodePassword(cfg.password),
-      projectKey: cfg.projectKey,
+      projectKeys: cfg.projectKeys,
     });
     await store.save();
 
@@ -93,23 +94,41 @@ export function useJira() {
     issues.value = [];
   }
 
-  // 手动刷新
-  async function refreshIssues(): Promise<void> {
+  // 手动刷新（支持多项目）
+  async function refreshIssues(projectKey?: string): Promise<void> {
     if (!config.value) return;
 
     loading.value = true;
     error.value = null;
 
     try {
-      const result = await invoke<JiraIssue[]>('fetch_jira_issues', {
-        config: {
-          base_url: config.value.baseUrl,
-          username: config.value.username,
-          password: config.value.password,
-          project_key: config.value.projectKey,
-        },
-      });
-      issues.value = result;
+      // 如果没有指定项目，查询所有配置的项目
+      const projectsToQuery = projectKey
+        ? [projectKey]
+        : config.value.projectKeys.length > 0
+          ? config.value.projectKeys
+          : [''];
+
+      const allIssues: JiraIssue[] = [];
+
+      for (const key of projectsToQuery) {
+        const result = await invoke<JiraIssue[]>('fetch_jira_issues', {
+          config: {
+            base_url: config.value.baseUrl,
+            username: config.value.username,
+            password: config.value.password,
+            project_key: key,
+          },
+        });
+        allIssues.push(...result);
+      }
+
+      // 去重（按 id）
+      const uniqueIssues = Array.from(
+        new Map(allIssues.map((i) => [i.id, i])).values()
+      );
+
+      issues.value = uniqueIssues;
     } catch (e) {
       error.value = String(e);
       console.error('获取 Jira 工单失败:', e);
@@ -118,6 +137,33 @@ export function useJira() {
     }
   }
 
+  // 按项目分组的工单
+  const issuesByProject = computed(() => {
+    const grouped = new Map<string, JiraIssue[]>();
+
+    for (const issue of issues.value) {
+      const key = issue.project_key || '未分类';
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+      grouped.get(key)!.push(issue);
+    }
+
+    return grouped;
+  });
+
+  // 获取所有项目 key 列表（包含工单中但实际未配置的项目）
+  const allProjectKeys = computed(() => {
+    const keys = new Set<string>();
+    if (config.value?.projectKeys) {
+      config.value.projectKeys.forEach((k) => keys.add(k));
+    }
+    issues.value.forEach((i) => {
+      if (i.project_key) keys.add(i.project_key);
+    });
+    return Array.from(keys).sort();
+  });
+
   return {
     config,
     issues,
@@ -125,6 +171,8 @@ export function useJira() {
     error,
     initialized,
     statusCounts,
+    issuesByProject,
+    allProjectKeys,
     loadConfig,
     saveConfig,
     clearConfig,

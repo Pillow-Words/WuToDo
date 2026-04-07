@@ -17,28 +17,42 @@ const form = ref<JiraConfig>({
   baseUrl: "",
   username: "",
   password: "",
-  projectKey: "",
+  projectKeys: [],
 });
 
-const testing = ref(false);
-const testResult = ref<{ success: boolean; message: string } | null>(null);
+// 项目 key 输入框绑定值（逗号分隔）
+const projectKeysInput = ref("");
 
+// 将输入的逗号分隔字符串转为数组
+watch(projectKeysInput, (val) => {
+  form.value.projectKeys = val
+    .split(/[,，]/)
+    .map((k) => k.trim().toUpperCase())
+    .filter((k) => k.length > 0);
+});
+
+// 初始化时反向转换
 watch(
   () => props.initialConfig,
   (config) => {
     if (config) {
       form.value = { ...config };
+      projectKeysInput.value = config.projectKeys?.join(", ") || "";
     } else {
       form.value = {
         baseUrl: "",
         username: "",
         password: "",
-        projectKey: "",
+        projectKeys: [],
       };
+      projectKeysInput.value = "";
     }
   },
   { immediate: true }
 );
+
+const testing = ref(false);
+const testResult = ref<{ success: boolean; message: string } | null>(null);
 
 async function testConnection() {
   if (!form.value.baseUrl || !form.value.username || !form.value.password) {
@@ -56,7 +70,7 @@ async function testConnection() {
         base_url: form.value.baseUrl,
         username: form.value.username,
         password: form.value.password,
-        project_key: form.value.projectKey || "*",
+        project_key: form.value.projectKeys[0] || "",
       },
     });
     testResult.value = { success: true, message: "连接成功！" };
@@ -127,12 +141,15 @@ function close() {
             </div>
 
             <div class="form-group">
-              <label>项目 Key（可选）</label>
+              <label>项目 Key（可选，多个用逗号分隔）</label>
               <input
-                v-model="form.projectKey"
+                v-model="projectKeysInput"
                 type="text"
-                placeholder="如: PROJ（不填则查询所有项目）"
+                placeholder="如: PROJ1, PROJ2, PROJ3"
               />
+              <small v-if="form.projectKeys.length > 0" class="hint">
+                将查询: {{ form.projectKeys.join(', ') }}
+              </small>
             </div>
 
             <div v-if="testResult" class="test-result" :class="{ success: testResult.success }">
@@ -261,6 +278,12 @@ function close() {
 
 .form-group input::placeholder {
   color: var(--text-muted);
+}
+
+.form-group .hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 
 .test-result {

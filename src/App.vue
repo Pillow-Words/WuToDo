@@ -46,9 +46,13 @@ async function handleSaveConfig(cfg: {
   baseUrl: string;
   username: string;
   password: string;
-  projectKey: string;
+  projectKeys: string[];
 }) {
   await saveConfig(cfg);
+  // 保存配置后立即刷新工单
+  if (activeTab.value === 'jira') {
+    await refreshIssues();
+  }
 }
 
 async function handleClearConfig() {
@@ -74,7 +78,7 @@ async function handleClearConfig() {
             :class="{ active: activeTab === 'jira' }"
             @click="activeTab = 'jira'"
           >
-            Jira 工单
+            Jira 待办
           </button>
           <button
             v-if="activeTab === 'jira'"
