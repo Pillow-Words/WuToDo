@@ -9,6 +9,11 @@ use std::sync::{Arc, Mutex};
 use serde::{Serialize, Deserialize};
 use base64::{Engine as _, engine::general_purpose};
 
+#[cfg(windows)]
+use windows::Win32::Foundation::HWND;
+#[cfg(windows)]
+use windows::Win32::Graphics::Gdi::{CreateRectRgn, SetWindowRgn};
+
 // Jira 相关结构体
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct JiraConfig {
@@ -255,6 +260,7 @@ pub fn run() {
 
             // Position windows at top-right of primary monitor
             let trigger_window = app.get_webview_window("trigger").unwrap();
+
             let panel_window = app.get_webview_window("panel").unwrap();
 
             // Use primary_monitor from app handle for reliable detection
@@ -282,6 +288,22 @@ pub fn run() {
                     trigger_height,
                 ));
                 let _ = trigger_window.show();
+
+                // Set window region for trigger: only top 6px is clickable, rest is transparent to mouse
+                #[cfg(windows)]
+                {
+                    use windows::Win32::Foundation::HWND;
+                    let hwnd = trigger_window.hwnd().expect("Failed to get window handle");
+                    let hwnd = HWND(hwnd.0 as isize);
+                    unsafe {
+                        // Create a region: 0,0 to 200,6 (only top 6px, full width)
+                        let hrgn = CreateRectRgn(0, 0, 200, 3);
+                        if !hrgn.is_invalid() {
+                            // Set window region - only this area receives mouse input
+                            let _ = SetWindowRgn(hwnd, hrgn, true);
+                        }
+                    }
+                }
 
                 // Panel: below trigger, right-aligned
                 let _ = panel_window.set_position(tauri::LogicalPosition::new(
